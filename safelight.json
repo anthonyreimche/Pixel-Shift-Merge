@@ -1,0 +1,13 @@
+{
+  "id": "pixel-shift-merge",
+  "name": "Pixel Shift Merge",
+  "version": "1.0.0",
+  "description": "Opens pixel-shift RAW files as one full-colour image: the four frames a Pentax shoots into one PEF or DNG, or a Sony ARQ, merged so every pixel has its own red, green and blue, with no demosaicing. Anything that moved between the frames is found and filled from one frame, so it doesn't show as a coloured ghost.",
+  "author": "Anthony Reimche",
+  "main": "dist/index.js",
+  "license": "GPL-3.0-or-later",
+  "categories": ["Develop", "Detail"],
+  "keywords": ["pixel shift", "multi shot", "high resolution", "PEF", "DNG", "ARQ", "Pentax", "Sony", "motion", "decoder", "RAW"],
+  "repository": "anthonyreimche/Pixel-Shift-Merge",
+  "minAppVersion": "3.2.7"
+}
