@@ -6,17 +6,6 @@
 // of its own; calls on it go one at a time.
 
 import { mayPass, transientError } from "./errors";
-import { EXT_ID } from "./options";
-
-declare const __EXT_VERSION__: string;
-
-/** A file under the installed extension's folder. import.meta.url is
- *  undefined in an installed extension's module, so the URL is built the way
- *  core's loader builds it, cache-busted by the version. */
-export function assetUrl(rel: string): string {
-  const v = typeof __EXT_VERSION__ === "string" ? __EXT_VERSION__ : "";
-  return `${location.origin}/__plugins__/${EXT_ID}/${rel}${v ? `?v=${encodeURIComponent(v)}` : ""}`;
-}
 
 /** LibRaw's whole sensor readout: the visible area sits at the margins. */
 export interface Readout {
@@ -56,7 +45,7 @@ export class LibRawWorker implements LibRawSession {
   private failPending: ((e: Error) => void) | null = null;
   private ended = false;
 
-  constructor(url = assetUrl("dist/libraw/worker.js")) {
+  constructor(url: string) {
     this.worker = new Worker(url, { type: "module" });
   }
 

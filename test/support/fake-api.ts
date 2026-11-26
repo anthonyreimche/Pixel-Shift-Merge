@@ -10,6 +10,7 @@ type DecoderOrder = AppSettings["decoderOrder"];
  *  narrowed to the one setting the extension reads. */
 interface FakeMembers {
   registerSettings: SafelightAPI["registerSettings"];
+  assetUrl: SafelightAPI["assetUrl"];
   settings: SafelightAPI["settings"];
   library: Pick<SafelightAPI["library"], "registerDecoder">;
   stores: { useSettings: { getState(): Pick<AppSettings, "decoderOrder"> } };
@@ -39,6 +40,7 @@ export function fakeApi(initial: { decoderOrder?: DecoderOrder } = {}): Rig {
 
   const members: FakeMembers = {
     registerSettings: (c) => void settingsSections.push(c),
+    assetUrl: (path) => `asset://pixel-shift-merge/${path}`,
     settings: {
       get: <T>(key: string, fallback: T): T => (values.has(key) ? (values.get(key) as T) : fallback),
       set,

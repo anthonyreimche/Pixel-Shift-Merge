@@ -946,6 +946,12 @@ export interface UniformDeclaration {
      *  ImageSpaceMatrix, which core finishes for the image's aspect wherever the
      *  image is drawn. */
     space?: "image";
+    /** The extension works this value out for each photo (from its lens, its
+     *  metadata, its pixels) rather than the user setting it. It still rides the
+     *  photo's bag, so every render of the photo draws it, but it never counts as
+     *  an edit: setting it adds no history step and leaves the photo unedited, and
+     *  Copy Settings, Paste and presets leave it out. */
+    computed?: boolean;
 }
 
 /** A matrix a geometry stage derives, row-major: `normalized` acts on image
@@ -1758,6 +1764,12 @@ export interface StylesheetContribution {
 export interface SafelightAPI {
     version: 1;
     extensionId: string;
+    /** The URL of one of your own files, `path` from your folder (the one
+     *  safelight.json is in, e.g. "dist/runtime.wasm"), cache-busted by your
+     *  version: for a worker, a WebAssembly binary or a model your bundle loads.
+     *  import.meta.url is undefined in an extension's module, and the same URL
+     *  serves a Developer Tools dev-folder copy. Needs Safelight 3.2.7. */
+    assetUrl(path: string): string;
     /** The app's React instance — plugins must use this, not their own copy. */
     react: typeof import("react");
     registerPanel(c: PanelContribution): void;
@@ -2418,6 +2430,36 @@ export interface SafelightAPI {
         /** React hook: brushTips(), re-rendering as tips come and go. Needs
          *  Safelight 3.2.5. */
         useBrushTips(): readonly BrushTipContribution[];
+        /** The official brush every painting tool shares: Masking's. A tool holds
+         *  its own settings and starts them from `defaults` (size is a radius as a
+         *  share of the photo's height, as a BrushDab's; feather, opacity and flow
+         *  run 0 to 1). `actions` are the rebindable brush shortcuts' keybinding
+         *  ids ([ and ] size, Shift+[ and Shift+] feather, comma and period
+         *  opacity, Shift+comma and Shift+period flow), which core hands only to the
+         *  held canvas tool: answer CanvasTool.onAction and wants with `step`,
+         *  passing the settings the tool has. It returns the setting a shortcut
+         *  changes and its new value, held to its range, or null for one the tool
+         *  doesn't have, which core then leaves alone. Needs Safelight 3.2.7. */
+        brush: {
+            defaults: Readonly<BrushSettings>;
+            actions: readonly string[];
+            step: typeof stepBrush;
+        };
+        /** The official brush ring, for a canvas tool's overlay: the brush's edge
+         *  and its feathered core at `at` (overlay layout px, from framePoint; or
+         *  "centre", the reference a size slider shows while dragged), sized as a
+         *  dab paints in the photo through any crop, zoom or Perspective; red and
+         *  dashed for an erasing brush. It draws around the crosshair cursor, as
+         *  Masking's brush does. Needs Safelight 3.2.7. */
+        BrushCursor: typeof BrushCursor;
+        /** The pointer in `el`'s layout px: the space an overlay's `rect`, the
+         *  mapping helpers and CSS left/top use. Interface scale zooms the page,
+         *  so clientX minus the element's left is off by the zoom. Needs Safelight
+         *  3.2.7. */
+        framePoint(el: Element, clientX: number, clientY: number): {
+            x: number;
+            y: number;
+        };
         /** Turn non-RAW photos (JPEG, PNG, WebP, AVIF, TIFF, NetPBM) into linear
          *  Rec.709 yourself. Each load of such a photo asks `resolver` for a
          *  transform and hands it the original's bytes; core reads the file's
@@ -5170,7 +5212,8 @@ export interface CurveEditorProps {
     curves: ToneCurves;
     onChange: (channel: ToneCurveChannel, points: CurvePoint[]) => void;
     onCommit: () => void;
-    /** Compact mode for embedding inside another panel (mask sub-panels). */
+    /** Accepted for editors embedded in another panel (mask sub-panels). The
+     *  gesture help is a tooltip, so the editor renders the same either way. */
     compact?: boolean;
     /** Show the selected point's In/Out row even without keyboard canvas editing. */
     showPointValues?: boolean;
@@ -6088,6 +6131,45 @@ export interface SourcePixels {
     height: number;
 }
 
+// src/modules/develop/brush.ts
+
+export interface BrushSettings {
+    size: number;
+    feather: number;
+    opacity: number;
+    flow: number;
+}
+
+export type BrushSetting = keyof BrushSettings;
+
+/** The setting a brush shortcut changes and its value after the step, held to
+ *  its range; null for an action that isn't a brush shortcut, or one for a
+ *  setting `brush` doesn't have, so a tool without flow leaves the flow keys
+ *  alone. A canvas tool answers onAction and wants with it. */
+declare function stepBrush(action: string, brush: Partial<BrushSettings>): {
+    key: BrushSetting;
+    value: number;
+} | null;
+
+// src/modules/develop/BrushCursor.ts
+
+export interface BrushCursorProps {
+    /** The pointer in the overlay's layout px (api.develop.framePoint), or
+     *  "centre" for the reference ring a size slider shows; null draws nothing. */
+    at: {
+        x: number;
+        y: number;
+    } | "centre" | null;
+    /** The brush's radius, a share of the photo's height. */
+    size: number;
+    /** 0 to 1: how much of the radius fades. */
+    feather: number;
+    /** An erasing (subtracting) brush, drawn red and dashed. */
+    erase?: boolean;
+}
+
+declare function BrushCursor({ at, size, feather, erase }: BrushCursorProps): import("react").JSX.Element | null;
+
 // src/catalog/normalize.ts
 
 declare function normalizeParams(p: Partial<DevelopParams> | undefined): DevelopParams;
@@ -6498,6 +6580,10 @@ export interface ExtensionDescriptors {
         owns?: string[];
     }[];
     hasCatalogHooks: boolean;
+    /** The bag keys of uniforms the extension computes for each photo
+     *  (UniformDeclaration.computed), inline and in passes. Absent from files an
+     *  older Safelight wrote. */
+    computed?: string[];
 }
 
 // src/project/folder-node.ts

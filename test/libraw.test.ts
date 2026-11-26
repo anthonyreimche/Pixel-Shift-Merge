@@ -3,6 +3,8 @@
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { LibRawWorker } from "../src/libraw";
+import { appRuntime } from "../src/runtime";
+import { fakeApi } from "./support/fake-api";
 
 class SilentWorker {
   static made: SilentWorker[] = [];
@@ -49,6 +51,25 @@ describe("LibRawWorker", () => {
     await Promise.resolve();
     SilentWorker.made[0].onmessage?.(new MessageEvent("message", { data: { id: 1, out: { width: 8 } } }));
     await expect(meta).resolves.toEqual({ width: 8 });
+  });
+});
+
+describe("the app runtime", () => {
+  it("starts LibRaw from the file the extension asks the app for", () => {
+    const urls: unknown[] = [];
+    vi.stubGlobal(
+      "Worker",
+      class {
+        onmessage = null;
+        onerror = null;
+        constructor(url: unknown) {
+          urls.push(url);
+        }
+        terminate() {}
+      },
+    );
+    appRuntime(fakeApi().api).libraw().dispose();
+    expect(urls).toEqual(["asset://pixel-shift-merge/dist/libraw/worker.js"]);
   });
 });
 

@@ -18,7 +18,7 @@ export function decoderVersion(signature: string): string {
   return `${v}+${signature}`;
 }
 
-export function activate(api: SafelightAPI, runtime: DecoderRuntime = appRuntime): void {
+export function activate(api: SafelightAPI, runtime: DecoderRuntime = appRuntime(api)): void {
   api.registerSettings({
     title: "Pixel Shift Merge",
     fields: SETTINGS_FIELDS,

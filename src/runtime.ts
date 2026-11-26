@@ -8,6 +8,7 @@ import { transientError } from "./errors";
 import type { MergeJob, MergeOutput, MergeReply } from "./job";
 import { LibRawWorker } from "./libraw";
 import MergeWorker from "./merge-worker?worker&inline";
+import type { SafelightAPI } from "./safelight";
 
 /** The buffers a job carries, each once, handed to the worker. */
 function buffersOf(job: MergeJob): ArrayBuffer[] {
@@ -48,7 +49,7 @@ export function mergeInWorker(job: MergeJob, signal: AbortSignal): Promise<Merge
   });
 }
 
-export const appRuntime: DecoderRuntime = {
-  libraw: () => new LibRawWorker(),
+export const appRuntime = (api: SafelightAPI): DecoderRuntime => ({
+  libraw: () => new LibRawWorker(api.assetUrl("dist/libraw/worker.js")),
   merge: mergeInWorker,
-};
+});
